@@ -34,6 +34,7 @@ def get_data():
         "x-requested-with": "XMLHttpRequest"
     }
     url = "https://match.yuanrenxue.cn/api/match/1"
+    all_num = 0
     for i in range(1, 6):
         params = {
             "page": i,
@@ -43,8 +44,12 @@ def get_data():
         # print(f"实际发送的URL: {res.request.url}")
 
         res = requests.get(url=url, headers=headers, params=params)
-
-        print(res.json)
+        for item in res.json()['data']:
+            a = item['value']
+            all_num += a
+    num = all_num / 50
+    print('all_num=' + str(all_num))
+    print('num=' + str(num))
 
 
 get_data()
