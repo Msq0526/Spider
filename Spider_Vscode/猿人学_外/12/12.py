@@ -1,6 +1,5 @@
 import requests
 import base64
-from loguru import logger
 import re
 
 
