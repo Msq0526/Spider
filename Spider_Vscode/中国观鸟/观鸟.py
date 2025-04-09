@@ -1,3 +1,7 @@
+import subprocess
+from functools import partial
+# 设置 subprocess.Popen 的编码为 utf-8
+subprocess.Popen = partial(subprocess.Popen, encoding="utf-8")
 import requests
 import execjs
 
@@ -14,7 +18,7 @@ def update_page(url):
             js_data = js_file.read()
         info = execjs.compile(js_data).call("jscode", options)
         info_list.append(info)
-    print(info_list)
+    # print(info_list)
     for info in info_list:
         requestId = info["requestId"]
         sign = info["sign"]
@@ -27,27 +31,24 @@ def update_page(url):
             "sign": sign,
             "timestamp": timestamp
         }
-        print(headers)
+        # print(headers)
         response = requests.post(url, headers=headers).json()
-        print(response)
-        # data = response.get("data")
-        # print(data)
-        # data_list.append(data)
-    print(data_list)
-    # return data_list    
+        data = response.get('data')
+        data_list.append(data)
+    # print(data_list)
+    return data_list    
 
 
-update_page(url)
+# update_page(url)
 
 def enctrypt_data():
     data_list = update_page(url)
     for data in data_list:
-        data = data["data"]
-        print(data)
-        print()
-        # with open(r"E:\Spider\Spider_Vscode\中国观鸟\观鸟.js", "r", encoding="utf-8").read() as js_file:
-        #     execjs.compile(js_file).call("decode", data)
+        with open(r"E:\Spider\Spider_Vscode\中国观鸟\观鸟.js", "r", encoding="utf-8") as js_file:
+            js_code = js_file.read()
+            infodata = execjs.compile(js_code).call("decode", data)
+            print(infodata)
 
 
     
-# enctrypt_data()
+enctrypt_data()
