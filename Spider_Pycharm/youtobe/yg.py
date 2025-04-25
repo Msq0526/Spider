@@ -2,8 +2,10 @@
 # 2. 接口：https://www.youtube.com/youtubei/v1/browse?prettyPrint=false
 # 3. 请求方式：从上个请求的返回值中取加密参数trackingParams，传入下一个请求中进行翻页，获取新内容
 import requests
-from urllib.parse import unquote
+import pandas as pd
 import json
+import time
+import random
 import re
 
 class Spider_yg():
@@ -187,32 +189,53 @@ class Spider_yg():
             # 'continuation': '4qmFsgKPCRIYVUNhNkQyazVxaHBPSTlJLVdUOGZwZDZnGvIIOGdiUEJock1CbnJKQmdyRUJncWJCa0ZpVkdaMFkweDFWMnRJUWt4QkxXcGljMGRITTNvMkxUSjBXbFZ4VkZGVk5tWkxTM2swYTJwdmFVbE5lRU4yU1d4TE1HVlFWVFZtVkRKeExWWmZNV3BSVkZOak4waHFaRlZWZUdWUFEyNUxjblZ2WDFvM2FFWkxWMEpFYld0VWRHcGpkbEYyVTIxbE0wZFlVRU0yU2pCUFNFdzNTRmx5TmsxTVQyRTNTak5OVldwVU4xTkNhbWt5YzFwcWF5MUtNRU5zTXpaRlNsWm5ObXh1ZVhaVFVHaEZOazAwYm1oNU0wcDZRWEZLUW1KWGVXczVYMlpwWDJSNlRtcDNRbXc0U2xZdGNXdHhiRWRmVWs4M2JrVkpZMTk0Y1hWeU5rdEpjbHA2TWtaTldtVk1UamhUUlhONU5VSnJWbGhaVkc1ck9HWldSbFZQYnpOWVNVWTRkVkZtUVdFNVRETmpNRWt4U0ZoSmRUUkNTVzk2VG1GVUxVZGxUVzlMZGtRNFNIZGpjVk00WlZaSVltaFlWa0V4U1hGU01EVXpWMWw1ZEZBMlIwVlpTbFEwUldweWVUWmtVakZNWDFKV1ZHbDBjVTVqYkZkV1kzRm9kalJuVTI5UmJGUkVWV2xMYjNocGRraHZNMDFUTTFacWF6ZDVWWGRqWjIxdFZVWk9ORVkyYmxCcWVrNTNUbkJFZWkxWU4yTkpTRzVDYkRkQ1UxZFBlRWxMUkhsU1FuUmFUME5KTlZCWllWaHBiVFl3UlRSS1R5MXNaM2h0WlY5WGFYWTBOelV0YjB0T2EySmtZamsxWlhZM1dVWkVOM1pQUzJSMVNGOXlRMVEwUVVKaVRrTkRaM0JrUm1KYWFubEZZMkZmZG1sUlluTjJiekpYT1U5YWFtaFFWalZrV20wd2NVUlpXRU4wWWxKQlVHMVRVSEZKTWxndFYwRm9TRVJDYWxOMlozbGpVekZvTlVaNFZ6VlZkekpDZVdWc2IySXhhRVk0U1VscVUwbFRXVFpDVmtKWU1UbGFORGMwTW1sc2JXTmhWa3B0V1VRNVpHaHhWbTVsYUdwaFZrWnpVamh3VEd0d1RFNWtVMEZzU2sxd2RtdDNhMmsxYWtaaFgzY3RjM1o1YVhoWkxUQmtTbEZrU3pReE4xTmlPWHBqVjBrMVkwNU1iek5DYmxsSmQzcENWVzAyV1RKM1MxQkpkemhGVW05cVpsWjFTVTloV1RWMGJHcGZSbFIzWDFaUmRUWlZURmRUTUV3NE4yWjRObVF3T0VsSVdHTXROamxJU1ZnelZGWmhha2RwU1VOMFRFNVhhVnBLWW5CdGIxQmliMWMzWjNoSkxVSjBjM0kyVWswMk5VZFdZM28zWkU1NmNHNVdjRmxPVDNCblFubEVPRUZzZDBZMk5HSmpSSE5qU1JJa05tWXlaakUyTURFdE1EQXdNQzB5TlRNMkxXRTROalV0TlRneU5ESTVZelE1TkRkaklBUSUzRA%3D%3D',
         }
         self.session = requests.Session()
+        self.all_data = []
 
     # 获取第一页数据，并返回请求供翻页使用
-    def info_one(self):
+    def info_one(self, name):
         try:
             response = self.session.get(
-                'https://www.youtube.com/@tech-shrimp/videos',
+                f'https://www.youtube.com/{name}/videos',
                 cookies=self.cookies,
                 headers=self.headers
             )
             response.raise_for_status()
+
+            # 提取 ytInitialData
+            match = re.search(r'ytInitialData\s*=\s*({.*?});', response.text, re.DOTALL)
+            if not match:
+                print("无法找到 ytInitialData")
+                return None
+            # 解析初始数据
+            initial_data = json.loads(match.group(1))
+            self.one_datainfo(initial_data)
             return response.text
         except requests.RequestException as e:
-            print(f"请求出错！！: {e}")
+            print(f"请求出错: {e}")
             return None
 
     # 使用正则匹配获取continuation并传入jsondata_
-    def get_continuation(self,data, is_initial: bool = True):
+    def get_continuation(self, data, is_initial: bool = True):
         try:
-            # 判断是否是第一页
             if is_initial:
-                # 使用正则匹配出源代码中的continuation
-                pattern = r'("token":".*?")'
-                # 将提取到的数据进行url解码,并使用split分割，列表取值
-                match = re.search(pattern, data)
-                if match:
-                    return unquote(match.group(1)).split('"')[3]
+                # 从 ytInitialData 中提取 continuation
+                match = re.search(r'ytInitialData\s*=\s*({.*?});', data, re.DOTALL)
+                if not match:
+                    print("无法找到 ytInitialData")
+                    return None
+                initial_data = json.loads(match.group(1))
+                contents = initial_data.get("contents", {}).get("twoColumnBrowseResultsRenderer", {}).get("tabs", [])
+                for tab in contents:
+                    if tab.get("tabRenderer", {}).get("selected"):
+                        continuation_items = tab.get("tabRenderer", {}).get("content", {}).get("richGridRenderer",
+                                                                                               {}).get("contents", [])
+                        for item in continuation_items:
+                            continuation_info = item.get("continuationItemRenderer", {}).get("continuationEndpoint", {})
+                            token = continuation_info.get("continuationCommand", {}).get("token")
+                            if token:
+                                return token
+                print("未找到初始 continuation 参数")
+                return None
             else:
                 json_data = json.loads(data)
                 continuation_items = json_data.get('onResponseReceivedActions', [])
@@ -223,10 +246,10 @@ class Spider_yg():
                         token = continuation_info.get('continuationCommand', {}).get('token')
                         if token:
                             return token
-            print(f"没有continuation参数")
-            return None
+                print("未找到 continuation 参数")
+                return None
         except (re.error, json.decoder.JSONDecodeError, KeyError) as e:
-            print(f"发生错误：", e)
+            print(f"提取 continuation 时发生错误: {e}")
             return None
 
     # 翻页函数，将取出的continuation传入获取返回内容
@@ -236,23 +259,119 @@ class Spider_yg():
             jsondata_['continuation'] = continuation
 
         try:
-            response = self.session.post('https://www.youtube.com/youtubei/v1/browse',
-                                         params=self.params,
-                                         cookies=self.cookies,
-                                         headers=self.headers,
-                                         json=jsondata_
-                                         )
+            time.sleep(random.uniform(1, 3))  # 随机延迟
+            response = self.session.post(
+                'https://www.youtube.com/youtubei/v1/browse',
+                params=self.params,
+                cookies=self.cookies,
+                headers=self.headers,
+                json=jsondata_
+            )
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:
-            print(f"请求错误：", e)
+            print(f"请求错误: {e}")
             return None
 
+    # 处理第一页数据
+    def one_datainfo(self, data):
+        try:
+            tabs = data['contents']['twoColumnBrowseResultsRenderer']['tabs']
+            for tab in tabs:
+                if 'tabRenderer' in tab and tab['tabRenderer'].get('selected', False):
+                    contents = tab['tabRenderer']['content']['richGridRenderer']['contents']
+                    break
+
+            else:
+                print(f"没用数据，无法获取！")
+                return []
+
+            for content in contents:
+                video_renderer = content.get('richItemRenderer', {}).get('content', {}).get('videoRenderer', {})
+                if not video_renderer:
+                    continue
+
+                title = video_renderer.get('title', {}).get('runs', [{}])[0].get('text', 'N/A')
+                if not re.match(r'[\w\s\W]+', title):
+                    title = 'N/A'
+
+                published_time = video_renderer.get('publishedTimeText', {}).get('simpleText', 'N/A')
+                if not re.match(r'[\w\s]+(?:小时前|分钟前|天前|周前|月前|年前|ago)', published_time, re.IGNORECASE):
+                    published_time = 'N/A'
+
+                length_label = video_renderer.get('lengthText', {}).get('accessibility', {}).get('accessibilityData', {}).get('label', 'N/A')
+                if not re.match(r'(\d+\s*(?:分钟|小时|秒钟|hour|minute|second)[\s\d]*(?:钟)?)', length_label, re.IGNORECASE):
+                    length_label = 'N/A'
+
+                view_count = video_renderer.get('viewCountText', {}).get('simpleText', 'N/A')
+                if not re.match(r'[\d,.]+(?:\s*[KMB])?\s*(?:次观看|views)', view_count, re.IGNORECASE):
+                    view_count = 'N/A'
+
+                short_view_label = video_renderer.get('shortViewCountText', {}).get('accessibility', {}).get('accessibilityData', {}).get('label', 'N/A')
+
+                self.all_data.append({
+                    "标题": title,
+                    "发布时间": published_time,
+                    "视频时长": length_label,
+                    "观看次数_详": view_count,
+                    "观看次数_简": short_view_label
+                })
+        except KeyError as e:
+            print(f"解析 JSON 时出错，可能缺少键: {e}")
+            return []
+        except Exception as e:
+            print(f"解析数据时发生未知错误: {e}")
+            return []
+
+    # 处理数据
+    def datainfo(self, response_data):
+        try:
+            onResponseReceivedActions = response_data.get("onResponseReceivedActions", [])
+            for action in onResponseReceivedActions:
+                items = action.get("appendContinuationItemsAction", {}).get("continuationItems", [])
+                for item in items:
+                    # 检查是否是视频项
+                    video_renderer = item.get("richItemRenderer", {}).get("content", {}).get("videoRenderer", {})
+                    if not video_renderer:
+                        continue
+                    # 提取标题
+                    title_runs = video_renderer.get("title", {}).get("runs", [])
+                    title = title_runs[0].get("text") if title_runs else "N/A"
+                    # 提取发布时间
+                    published_time = video_renderer.get("publishedTimeText", {}).get("simpleText", "N/A")
+                    # 提取视频时长
+                    length_label = video_renderer.get("lengthText", {}).get("accessibility", {}).get(
+                        "accessibilityData", {}).get("label", "N/A")
+                    # 提取观看次数
+                    view_count = video_renderer.get("viewCountText", {}).get("simpleText", "N/A")
+                    short_view_label = video_renderer.get("shortViewCountText", {}).get("accessibility", {}).get(
+                        "accessibilityData", {}).get("label", "N/A")
+                    # 保存数据
+                    self.all_data.append({
+                        "标题": title,
+                        "发布时间": published_time,
+                        "视频时长": length_label,
+                        "观看次数_详": view_count,
+                        "观看次数_简": short_view_label
+                    })
+        except Exception as e:
+            print(f"处理响应时发生错误: {e}")
+            return None
+
+    # 保存代码为cvs格式
+    def save_data(self, filename="youtube_data.csv"):
+        try:
+            df = pd.DataFrame(self.all_data)
+            df.to_csv(filename, index=False, encoding='utf-8')
+            print(f"数据已保存到 {filename}")
+        except Exception as e:
+            print(f"保存数据失败: {e}")
 
 
 if __name__ == '__main__':
     spider = Spider_yg()
-    data = spider.info_one()
+    data = spider.info_one('@lingdujieshuo')
+    # print(data)
     if not data:
         print("无法获取第一页数据，程序退出")
         exit(1)
@@ -271,6 +390,7 @@ if __name__ == '__main__':
             print("获取数据失败，停止翻页")
             break
 
+        spider.datainfo(info)
         print(f"第{page_count}页数据获取成功")
 
         token = spider.get_continuation(json.dumps(info), is_initial=False)
@@ -279,5 +399,9 @@ if __name__ == '__main__':
             break
 
         page_count += 1
-
+    # 保存为cvs格式，按需开启
+    # spider.save_data()
+    print(f"提取到的数据内容：", spider.all_data)
     print(f"共获取{page_count - 1}页数据！")
+
+# 使用方法，将油管博主的@lingdujieshuo 类似昵称 传入spider.info_one('name')中 即可自动获取该博主的视频信息。
