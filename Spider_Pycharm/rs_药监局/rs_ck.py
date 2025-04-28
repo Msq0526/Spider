@@ -9,9 +9,7 @@ subprocess.Popen = MySubprocessPopen
 os.environ['EXECJS_RUNTIME'] = 'Node'
 import requests
 import execjs
-import chardet
 from lxml import etree
-from urllib.parse import urljoin
 import loguru
 logger = loguru.logger
 session = requests.Session()
@@ -41,61 +39,49 @@ headers = {
 
 
 
-def get_01(url, headers):
-    try:
-        response = session.get(url, headers=headers)
-        response.raise_for_status()  # 检查请求是否成功
-        logger.success(f"第一次请求状态码为>>>>>{response.status_code}")
-        html = etree.HTML(response.text)
-        meta_content = html.xpath('//meta/@content')[1]
-        auto_js = html.xpath('//script/text()')[0]
-        ts_url = urljoin(url, html.xpath('//script[2]/@src')[0])
-        ts_js = session.get(ts_url, headers=headers).text
-        return meta_content, auto_js, ts_js
-    except requests.RequestException as e:
-        logger.error(f"第一次请求出错: {e}")
-        return None, None, None
+def get_01(url,headers):
+    response = session.get(url, headers=headers)
+    logger.success(f"第一次请求状态码为>>>>>{response.status_code}")
+    # print(response.text)
+    html = etree.HTML(response.text)
+    meta_content = html.xpath('//meta/@content')[1]
+    auto_js = html.xpath('//script/text()')[0]
+    ts_url = url + html.xpath('//script[2]/@src')[0]
+    ts_js = session.get(ts_url, headers=headers).text
+    return meta_content, auto_js, ts_js
 
 
 def update_cookie(meta_content, auto_js, ts_js):
-    if meta_content is None or auto_js is None or ts_js is None:
-        return
-    try:
-        with open('ck.js', 'rb') as js_file:
-            raw_data = js_file.read()
-            encoding = chardet.detect(raw_data)['encoding']
-            js_code = raw_data.decode(encoding)
-        js_code = js_code.replace('metaContent', meta_content).replace("'ts_js'", ts_js).replace("'auto_js'", auto_js)
-        js_compile = execjs.compile(js_code).call('get_cookie')
-        print(js_compile)
-        cookie_t = js_compile.split(';')[0].split('=')
-        print(cookie_t)
-        session.cookies.update({cookie_t[0]: cookie_t[1]})
-        cookie_str = len(str(session.cookies))
-        logger.success(f"cookie数量>>>>>>{cookie_str}")
-        logger.success(f"cookie内容>>>>>>{session.cookies.get_dict()}")
-    except execjs._exceptions.ProgramError as e:
-        logger.error(f"JavaScript 代码执行出错: {e}")
-    except Exception as e:
-        logger.error(f"更新 cookie 时出错: {e}")
+    with open('ck.js', 'r', encoding='utf-8') as js_file:
+        js_code = js_file.read()
+    js_code = js_code.replace('metaContent', meta_content).replace('"ts_js"', ts_js).replace('"auto_js"', auto_js)
+    # print(js_code)
+    js_compile = execjs.compile(js_code)
+    cookie_t = js_compile.call('get_cookie').split(';')[0].split('=')
+    # print(cookie_t)
+    session.cookies.update({cookie_t[0]: cookie_t[1]})
+    # print(cookie_t[0])
+    # print(cookie_t[1])
+    cookie_str = len(str(session.cookies))
+    logger.success(f"cookie数量>>>>>>{cookie_str}")
+    logger.success(f"cookie内容>>>>>>{session.cookies.get_dict()}")
 
 
-def get_02(url, headers):
-    try:
-        response = session.get(url, headers=headers)
-        response.encoding = "utf8"
-        response.raise_for_status()  # 检查请求是否成功
-        logger.success(f"第二次请求状态码为>>>>>{response.status_code}")
-        logger.info(f"请求内容为>>>>>{response.text}")
-    except requests.RequestException as e:
-        logger.error(f"第二次请求出错: {e}")
+def get_02(url,headers):
+    response = session.get(url, headers=headers)
+    response.encoding = "utf8"
+    logger.success(f"第二次请求状态码为>>>>>{response.status_code}")
+    logger.info(f"请求内容为>>>>>{response.text}")
 
 
 def main():
     url = "https://www.nmpa.gov.cn"
-    meta_content, auto_js, ts_js = get_01(url, headers)
+    meta_content, auto_js, ts_js = get_01(url,headers)
+    # print(meta_content)
+    # print(auto_js)
+    # print(ts_js)
     update_cookie(meta_content, auto_js, ts_js)
-    get_02(url, headers)
+    get_02(url,headers)
 
 if __name__ == '__main__':
     main()

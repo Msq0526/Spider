@@ -1,6 +1,6 @@
 /*
-url： https://www.haeea.cn/
-加密接口：https://www.haeea.cn/
+url： https://www.jscq.com.cn/
+加密接口：https://www.jscq.com.cn/jscq/cqjy/jygg/cqzr/index.shtml
 rs vmp
 */
 
@@ -233,14 +233,14 @@ document = {
 }
 location = {
     "ancestorOrigins": {},
-    "href": "https://www.nmpa.gov.cn/",
-    "origin": "https://www.nmpa.gov.cn",
+    "href": "https://zwfw.mnr.gov.cn/flow/open?type=kyqysl",
+    "origin": "https://zwfw.mnr.gov.cn",
     "protocol": "https:",
-    "host": "www.nmpa.gov.cn",
-    "hostname": "www.nmpa.gov.cn",
+    "host": "zwfw.mnr.gov.cn",
+    "hostname": "zwfw.mnr.gov.cn",
     "port": "",
-    "pathname": "/",
-    "search": "",
+    "pathname": "/flow/open",
+    "search": "?type=kyqysl",
     "hash": ""
 }
 navigator = {

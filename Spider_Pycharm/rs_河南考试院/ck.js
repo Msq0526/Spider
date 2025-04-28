@@ -89,7 +89,6 @@ rs vmp
         set_native(func, myFunction_toString_symbol, `function ${func.name}() { [native code] }`);
     };
 }).call();
-
 function makeFunction(name) {
     // 动态创建一个函数
     var func = new Function(`
