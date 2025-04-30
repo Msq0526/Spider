@@ -1,6 +1,6 @@
 /*
-url： https://www.haeea.cn/
-加密接口：https://www.haeea.cn/
+url： https://www.nmpa.gov.cn/
+加密接口：https://www.nmpa.gov.cn/
 rs vmp
 */
 
