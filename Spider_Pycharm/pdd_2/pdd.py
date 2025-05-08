@@ -57,4 +57,5 @@ response = session.post(
     json=json_data,
 )
 
+print(response)
 print(response.json())
