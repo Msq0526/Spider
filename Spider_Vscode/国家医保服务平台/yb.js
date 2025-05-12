@@ -1,4 +1,10 @@
-
+/*
+url https://fuwu.nhsa.gov.cn/
+加密接口 https://fuwu.nhsa.gov.cn/ebus/fuwu/api/nthl/api/CommQuery/queryFixedHospital
+加密参数 signData
+加密参数 encData
+解密参数 _encData
+*/
 
 require("./loader_1")
 
